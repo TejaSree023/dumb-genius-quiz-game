@@ -16,7 +16,8 @@ If you answer correctly… you lose! 🧠💥
 
 ## 📸 Screenshots
 <img width="1406" height="563" alt="image" src="https://github.com/user-attachments/assets/0d342540-5fba-459b-87b1-902f2a9c3aba" />
-![WhatsApp Image 2025-07-31 at 19 58 23_a1a8bb7d](https://github.com/user-attachments/assets/15538a37-0a53-4f5e-be69-064794371f85)
+<img width="853" height="681" alt="image" src="https://github.com/user-attachments/assets/5b6d000a-fde1-4ce9-aa11-32d63cad32a6" />
+
 
 
 
