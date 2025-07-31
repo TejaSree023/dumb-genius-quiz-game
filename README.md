@@ -5,7 +5,7 @@ This is a humorous quiz game where the goal is to **pick the wrong answer** to w
 If you answer correctly… you lose! 🧠💥
 
 ## 🚀 Try it Live
-👉
+👉https://iridescent-zuccutto-d85dba.netlify.app/
 
 ## 🧠 Features
 - Fun multiple-choice questions
