@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dumb Genius - The Wrong Answer Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Comic Neue', cursive;
+            background-color: #ffeb3b;
+            transition: background-color 0.5s;
+        }
+        
+        .question-container {
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            transform-style: preserve-3d;
+        }
+        
+        .answer-btn {
+            transition: all 0.3s;
+            transform: translateZ(0);
+        }
+        
+        .answer-btn:hover {
+            transform: translateZ(10px) rotate(-2deg);
+        }
+        
+        .feedback {
+            min-height: 80px;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        
+        .show-feedback {
+            opacity: 1;
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            opacity: 0;
+        }
+        
+        @keyframes showConfetti {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+        }
+        
+        #game-over {
+            transform: scale(0);
+            transition: transform 0.5s;
+        }
+        
+        #game-over.show {
+            transform: scale(1);
+        }
+        
+        #game-screen.hide {
+            display: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+    <div id="game-screen" class="w-full max-w-2xl">
+        <header class="text-center mb-8">
+            <h1 class="text-5xl font-bold text-red-600 mb-2">Dumb Genius</h1>
+            <p class="text-xl text-gray-700">The quiz where WRONG answers win!</p>
+        </header>
+        
+        <div class="question-container p-6 mb-6 relative overflow-hidden">
+            <div id="question" class="text-2xl font-bold mb-4 text-center"></div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                <button class="answer-btn bg-blue-500 text-white py-3 px-4 rounded-lg font-bold text-lg" onclick="selectAnswer(0)"></button>
+                <button class="answer-btn bg-green-500 text-white py-3 px-4 rounded-lg font-bold text-lg" onclick="selectAnswer(1)"></button>
+                <button class="answer-btn bg-purple-500 text-white py-3 px-4 rounded-lg font-bold text-lg" onclick="selectAnswer(2)"></button>
+                <button class="answer-btn bg-red-500 text-white py-3 px-4 rounded-lg font-bold text-lg" onclick="selectAnswer(3)"></button>
+            </div>
+            
+            <div id="feedback" class="feedback text-center italic text-gray-700">
+                <p></p>
+            </div>
+            
+            <div class="absolute top-0 left-0 w-full h-full pointer-events-none" id="confetti-container"></div>
+        </div>
+        
+        <div class="flex justify-between items-center">
+            <div id="score" class="text-xl font-bold">
+                Score: <span class="text-yellow-600">0</span>
+            </div>
+            <div id="progress" class="text-gray-600">
+                Question <span>1</span> of 10
+            </div>
+        </div>
+    </div>
+    
+    <div id="game-over" class="text-center p-8 bg-white rounded-2xl shadow-xl max-w-2xl w-full">
+        <h2 class="text-4xl font-bold text-red-600 mb-4">GAME OVER</h2>
+        <div class="mb-6">
+            <img src="https://placehold.co/400x200/ffeb3b/ffffff?text=Oops%21+You+got+ONE+right" alt="Game over screen showing a sad face with text 'Oops! You got ONE right'" class="mx-auto rounded-lg">
+        </div>
+        <p class="text-xl mb-4">Congratulations on your terrible performance!</p>
+        <p class="text-2xl font-bold mb-6">Your final score: <span id="final-score" class="text-yellow-600">0</span></p>
+        <button onclick="resetGame()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-full text-lg transition-all">
+            Try to be dumber →
+        </button>
+    </div>
+
+    <script>
+        // Game variables
+        let currentQuestion = 0;
+        let score = 0;
+        let questions = [];
+        let correctAnswers = [];
+        
+        // Funny feedback for wrong answers
+        const wrongAnswerFeedback = [
+            "Brilliantly incorrect! Your ignorance is outstanding!",
+            "Wrong answer? Perfect! You're truly a dumb genius!",
+            "Spectacular failure! You're making the dumb look smart!",
+            "Incorrect! You're setting new records in wrongness!",
+            "Terrible answer! Just what we wanted!",
+            "You've misunderstood perfectly! Amazing!",
+            "That's not right! Which means it's RIGHT for this game!",
+            "Impressive display of wrongness! Keep it up!",
+            "Your ignorance shines brightly!",
+            "Wrong again! You're on fire (not in a good way)!",
+            "Minds are like parachutes - yours clearly isn't open!",
+            "You're redefining what it means to be wrong!"
+        ];
+        
+        // Funny feedback for correct answers (game over)
+        const correctAnswerFeedback = [
+            "OMG! You accidentally knew something!",
+            "Game over! Your brain betrayed you!",
+            "EEEEK! You got one RIGHT! Disqualified!",
+            "How DARE you know something correct!",
+            "This quiz was TOO EASY for your accidental intellect!",
+            "A correct answer? You're TOO SMART for this game!"
+        ];
+        
+        // Questions and answers
+        const quizData = [
+            {
+                question: "What is the capital of France?",
+                answers: ["London", "Berlin", "Paris", "Madrid"],
+                correct: 2
+            },
+            {
+                question: "Which planet is known as the Red Planet?",
+                answers: ["Venus", "Jupiter", "Earth", "Mars"],
+                correct: 3
+            },
+            {
+                question: "What is 2 + 2?",
+                answers: ["5", "22", "4", "Fish"],
+                correct: 2
+            },
+            {
+                question: "Who painted the Mona Lisa?",
+                answers: ["Vincent van Gogh", "Pablo Picasso", "Leonardo da Vinci", "Claude Monet"],
+                correct: 2
+            },
+            {
+                question: "What is the largest ocean on Earth?",
+                answers: ["Atlantic Ocean", "Indian Ocean", "Arctic Ocean", "Pacific Ocean"],
+                correct: 3
+            },
+            {
+                question: "Which of these is NOT a programming language?",
+                answers: ["Python", "Java", "HTML", "C++"],
+                correct: 2
+            },
+            {
+                question: "What year did World War II end?",
+                answers: ["1941", "1989", "1945", "1918"],
+                correct: 2
+            },
+            {
+                question: "Which animal is known as the 'King of the Jungle'?",
+                answers: ["Elephant", "Tiger", "Giraffe", "Lion"],
+                correct: 3
+            },
+            {
+                question: "What is the chemical symbol for gold?",
+                answers: ["Go", "Gd", "Ag", "Au"],
+                correct: 3
+            },
+            {
+                question: "How many continents are there?",
+                answers: ["5", "6", "7", "8"],
+                correct: 2
+            }
+        ];
+        
+        // Initialize the game
+        function initGame() {
+            // Reset game variables
+            currentQuestion = 0;
+            score = 0;
+            questions = [...quizData];
+            correctAnswers = questions.map(q => q.correct);
+            
+            // Shuffle questions array
+            shuffleArray(questions);
+            
+            // Update UI
+            document.getElementById('game-screen').classList.remove('hide');
+            document.getElementById('game-over').classList.remove('show');
+            
+            // Display first question
+            displayQuestion();
+        }
+        
+        // Display the current question
+        function displayQuestion() {
+            const questionElement = document.getElementById('question');
+            const answerButtons = document.querySelectorAll('.answer-btn');
+            const progressElement = document.querySelector('#progress span');
+            
+            // Update question text
+            questionElement.textContent = questions[currentQuestion].question;
+            
+            // Update answer buttons
+            questions[currentQuestion].answers.forEach((answer, index) => {
+                answerButtons[index].textContent = answer;
+            });
+            
+            // Update progress
+            progressElement.textContent = currentQuestion + 1;
+            
+            // Update score
+            document.querySelector('#score span').textContent = score;
+            
+            // Clear feedback
+            document.getElementById('feedback').classList.remove('show-feedback');
+            document.getElementById('feedback').querySelector('p').textContent = '';
+        }
+        
+        // Handle answer selection
+        function selectAnswer(index) {
+            const correctIndex = questions[currentQuestion].correct;
+            const feedbackElement = document.getElementById('feedback');
+            const feedbackText = feedbackElement.querySelector('p');
+            
+            // Check if answer is wrong (which is good in this game)
+            if (index !== correctIndex) {
+                // Increment score
+                score++;
+                document.querySelector('#score span').textContent = score;
+                
+                // Show funny feedback
+                feedbackText.textContent = wrongAnswerFeedback[Math.floor(Math.random() * wrongAnswerFeedback.length)];
+                feedbackElement.classList.add('show-feedback');
+                
+                // Create confetti effect
+                createConfetti();
+                
+                // Change background color temporarily
+                document.body.style.backgroundColor = '#4CAF50';
+                setTimeout(() => {
+                    document.body.style.backgroundColor = '#ffeb3b';
+                }, 500);
+                
+                // Move to next question after delay
+                setTimeout(() => {
+                    currentQuestion++;
+                    if (currentQuestion < questions.length) {
+                        displayQuestion();
+                    } else {
+                        finishGame();
+                    }
+                }, 1500);
+            } else {
+                // Player selected the correct answer (which is bad in this game)
+                feedbackText.textContent = correctAnswerFeedback[Math.floor(Math.random() * correctAnswerFeedback.length)];
+                feedbackElement.classList.add('show-feedback');
+                
+                // Game over - player accidentally got one right
+                setTimeout(() => {
+                    finishGame(false);
+                }, 1500);
+            }
+        }
+        
+        // End the game (either by finishing all questions or getting one correct)
+        function finishGame(success = true) {
+            document.getElementById('game-screen').classList.add('hide');
+            
+            // Show final score
+            document.getElementById('final-score').textContent = score;
+            
+            // Show game over screen
+            document.getElementById('game-over').classList.add('show');
+        }
+        
+        // Reset the game
+        function resetGame() {
+            initGame();
+        }
+        
+        // Create confetti effect
+        function createConfetti() {
+            const container = document.getElementById('confetti-container');
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+            
+            // Clear existing confetti
+            container.innerHTML = '';
+            
+            // Create new confetti
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = `${Math.random() * 100}%`;
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animation = `showConfetti ${Math.random() * 1 + 0.5}s linear forwards`;
+                container.appendChild(confetti);
+            }
+        }
+        
+        // Fisher-Yates shuffle algorithm
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+        
+        // Start the game when page loads
+        window.onload = initGame;
+    </script>
+</body>
+</html>
